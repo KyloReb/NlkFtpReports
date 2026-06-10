@@ -126,7 +126,7 @@
                     foreach (var line in Tab.Content.Split('\n'))
                     {
                         lineIdx++;
-                        <span class="ln" data-line="@lineIdx">@(line.TrimEnd('\r'))</span>
+                        <span class="ln" data-line="@lineIdx">@HighlightLine(line.TrimEnd('\r'), lineIdx)</span>
                     }
                 }
             </pre>
