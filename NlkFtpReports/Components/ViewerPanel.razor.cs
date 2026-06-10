@@ -23,6 +23,8 @@ public partial class ViewerPanel : IDisposable
     [Parameter] public bool IsRightPanel { get; set; }
     [Parameter] public int TotalMatchCount { get; set; }
     [Parameter] public int RightMatchCount { get; set; }
+    [Parameter] public List<OpenTab>? OpenTabs { get; set; }
+    [Parameter] public EventCallback<int> OnSelectRightTab { get; set; }
     [Parameter] public EventCallback OnZoomIn { get; set; }
     [Parameter] public EventCallback OnZoomOut { get; set; }
     [Parameter] public EventCallback OnZoomReset { get; set; }
@@ -110,6 +112,12 @@ public partial class ViewerPanel : IDisposable
     private async Task HighlightFind()
     {
         try { await JS.InvokeVoidAsync("fmcFind.clear"); } catch { }
+    }
+
+    private async Task OnRightTabSelected(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var index))
+            await OnSelectRightTab.InvokeAsync(index);
     }
 
     // ── Data class for JS return ──

@@ -133,16 +133,27 @@
 
         (function() {
             document.addEventListener('mousedown', function(e) {
-                var handle = e.target.closest('.resize-handle');
+                var handle = e.target.closest('.resize-handle, .viewer-divider');
                 if (!handle) return;
                 e.preventDefault();
-                var target = handle.previousElementSibling;
+
+                var target;
+                var minW = 120, maxW = 600;
+
+                if (handle.classList.contains('viewer-divider')) {
+                    target = handle.previousElementSibling;
+                    minW = 100; maxW = 2000;
+                } else {
+                    target = handle.previousElementSibling;
+                }
+
                 if (!target) return;
                 var startX = e.clientX;
                 var startW = target.offsetWidth;
+
                 function onMove(ev) {
                     var dx = ev.clientX - startX;
-                    var w = Math.max(120, Math.min(600, startW + dx));
+                    var w = Math.max(minW, Math.min(maxW, startW + dx));
                     target.style.width = w + 'px';
                     target.style.minWidth = w + 'px';
                     target.style.flexShrink = '0';

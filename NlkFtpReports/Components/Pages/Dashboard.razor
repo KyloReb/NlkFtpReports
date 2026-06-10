@@ -258,6 +258,8 @@
                              ZoomLevel="@_zoomLevel"
                              WrapText="@_wrapText"
                              IsRightPanel="true"
+                             OpenTabs="@_openTabs"
+                             OnSelectRightTab="@(i => SelectRightTab(i))"
                              TotalMatchCount="@(_openTabs.Count > 0 ? 1 : 0)"
                              RightMatchCount="@(_openTabs.Count > 1 ? 1 : 0)"
                              OnZoomIn="@(e => ZoomIn())"

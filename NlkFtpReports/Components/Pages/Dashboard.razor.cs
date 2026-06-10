@@ -92,7 +92,6 @@ public partial class Dashboard : IDisposable
         var result = new List<(TreeNode, int)>();
         foreach (var node in nodes.OrderBy(n => !n.IsFolder)
             .ThenByDescending(n => n.Name.Contains("NLK_REPORTS_EMV", StringComparison.OrdinalIgnoreCase))
-            .ThenByDescending(n => n.Name.Equals("PDF", StringComparison.OrdinalIgnoreCase))
             .ThenByDescending(n => n.Name.Equals("TXT", StringComparison.OrdinalIgnoreCase))
             .ThenByDescending(n => StartsWithAny(n.Name, "DATR", "DREJ", "DUNR"))
             .ThenBy(n => n.Name))
@@ -396,6 +395,15 @@ public partial class Dashboard : IDisposable
         _activeTabIndexRight = -1;
         _renderTick++;
         StateHasChanged();
+    }
+
+    private void SelectRightTab(int index)
+    {
+        if (index >= 0 && index < _openTabs.Count)
+        {
+            _activeTabIndexRight = index;
+            StateHasChanged();
+        }
     }
 
     private void ToggleSplitView()

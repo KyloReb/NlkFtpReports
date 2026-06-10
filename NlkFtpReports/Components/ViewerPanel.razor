@@ -54,7 +54,20 @@
         }
         else if (IsRightPanel)
         {
-            <span>Select a second file</span>
+            <div style="display:flex;align-items:center;gap:6px;flex:1;overflow:hidden;">
+                <span style="font-size:0.65rem;color:var(--text-muted);white-space:nowrap;">Tab:</span>
+                <select class="tab-select" @onchange="OnRightTabSelected">
+                    @if (OpenTabs != null)
+                    {
+                        @foreach (var (t, i) in OpenTabs.Select((t, i) => (t, i)))
+                        {
+                            <option value="@i" selected="@(Tab?.Key == t.Key)">
+                                @t.FileName
+                            </option>
+                        }
+                    }
+                </select>
+            </div>
         }
         else
         {

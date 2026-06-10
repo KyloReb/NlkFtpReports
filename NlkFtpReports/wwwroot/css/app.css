@@ -748,6 +748,22 @@ body {
   opacity: 1;
 }
 
+.tab-select {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 0.7rem;
+  padding: 2px 4px;
+  outline: none;
+  max-width: 180px;
+  cursor: pointer;
+}
+
+.tab-select:focus {
+  border-color: var(--accent);
+}
+
 .viewer-body {
   flex: 1;
   display: flex;
@@ -767,10 +783,17 @@ body {
 }
 
 .viewer-divider {
-  width: 3px;
+  width: 4px;
   flex-shrink: 0;
   background: var(--border-subtle);
   cursor: col-resize;
+  transition: background var(--transition-fast);
+  position: relative;
+  z-index: 10;
+}
+
+.viewer-divider:hover {
+  background: var(--accent);
 }
 
 .viewer-header .breadcrumb-current {
