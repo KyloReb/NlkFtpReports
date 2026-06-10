@@ -27,6 +27,11 @@
                             <input type="text" placeholder="Find..."
                                    @bind="_findText" @bind:after="DoFind" @bind:event="oninput"
                                    @onkeydown="OnFindKeyDown" />
+                            <span style="display:flex;align-items:center;gap:2px;flex-shrink:0;">
+                                <button class="find-mode @(_caseSensitive ? "active" : "")" @onclick="Search.ToggleCase" title="Case sensitive">Aa</button>
+                                <button class="find-mode @(_wholeWord ? "active" : "")" @onclick="Search.ToggleWord" title="Whole word">^w</button>
+                                <button class="find-mode @(_regexMode ? "active" : "")" @onclick="Search.ToggleRegex" title="Regex">.*</button>
+                            </span>
                             @if (_isSearching)
                             {
                                 <span class="find-count searching" style="margin-left:auto;">
@@ -35,7 +40,7 @@
                             }
                             else if (_findCount > 0)
                             {
-                                <span class="find-count">
+                                <span class="find-count" style="margin-left:auto;">
                                     @if (IsRightPanel && RightMatchCount > 0)
                                     {
                                         <text>@(_findIndex + 1)/@(_findCount) (L:@_findCount R:@RightMatchCount)</text>
@@ -50,13 +55,8 @@
                             }
                             else if (_findText != "")
                             {
-                                <span class="find-count no-match">No matches</span>
+                                <span class="find-count no-match" style="margin-left:auto;">No matches</span>
                             }
-                            <span style="margin-left:auto;display:flex;align-items:center;gap:2px;">
-                                <button class="find-mode @(_caseSensitive ? "active" : "")" @onclick="Search.ToggleCase" title="Case sensitive">Aa</button>
-                                <button class="find-mode @(_wholeWord ? "active" : "")" @onclick="Search.ToggleWord" title="Whole word">^w</button>
-                                <button class="find-mode @(_regexMode ? "active" : "")" @onclick="Search.ToggleRegex" title="Regex">.*</button>
-                            </span>
                         </div>
                         <div class="viewer-zoom" style="flex-shrink:0;">
                             <button class="btn-icon zoom-btn" @onclick="OnZoomOut" title="Zoom out">&#x2212;</button>
