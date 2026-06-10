@@ -25,7 +25,8 @@
                         <div class="find-bar" style="flex:1;min-width:0;">
                             <span class="find-label">&#x1F50D;</span>
                             <input type="text" placeholder="Find..."
-                                   @bind="_findText" @bind:after="DoFind" @bind:event="oninput" />
+                                   @bind="_findText" @bind:after="DoFind" @bind:event="oninput"
+                                   @onkeydown="OnFindKeyDown" />
                             @if (_isSearching)
                             {
                                 <span class="find-count searching" style="margin-left:auto;">
@@ -44,8 +45,8 @@
                                         <text>@(_findIndex + 1)/@(_findCount)</text>
                                     }
                                 </span>
-                                <button class="btn-icon find-nav" @onclick="FindPrev" title="Previous match">&#x25B2;</button>
-                                <button class="btn-icon find-nav" @onclick="FindNext" title="Next match">&#x25BC;</button>
+                                <button class="btn-icon find-nav" @onclick="FindPrev" title="Previous (Shift+Enter / F3)">&#x25B2;</button>
+                                <button class="btn-icon find-nav" @onclick="FindNext" title="Next (Enter / F3)">&#x25BC;</button>
                             }
                             else if (_findText != "")
                             {
@@ -78,9 +79,7 @@
                     {
                         @foreach (var (t, i) in OpenTabs.Select((t, i) => (t, i)))
                         {
-                            <option value="@i" selected="@(Tab?.Key == t.Key)">
-                                @t.FileName
-                            </option>
+                            <option value="@i" selected="@(Tab?.Key == t.Key)">@t.FileName</option>
                         }
                     }
                 </select>
@@ -92,26 +91,38 @@
         }
     </div>
 
-    <div class="viewer-content">
-        @if (Tab?.IsLoading == true)
-        {
+    @if (Tab?.Content != null)
+    {
+        <div class="viewer-content" @onscroll="OnScroll" style="position:relative;">
+            <pre class="pre-line-numbers" style="font-size:@((ZoomLevel * 100).ToString("F0"))%;white-space:@(WrapText ? "pre-wrap" : "pre");">@Tab.Content</pre>
+        </div>
+        <div class="viewer-status">
+            <span class="vs-line">Line @_scrollLine / @_totalLines</span>
+            <span class="vs-scroll">@_scrollPercent%</span>
+        </div>
+    }
+    else if (Tab?.IsLoading == true)
+    {
+        <div class="viewer-content">
             <div class="loading-overlay"><div class="spinner"></div><span class="loading-text">Loading content...</span></div>
-        }
-        else if (Tab?.Content != null)
-        {
-            <pre style="font-size:@((ZoomLevel * 100).ToString("F0"))%;white-space:@(WrapText ? "pre-wrap" : "pre");">@Tab.Content</pre>
-        }
-        else if (Tab != null)
-        {
+        </div>
+    }
+    else if (Tab != null)
+    {
+        <div class="viewer-content">
             <div class="viewer-empty"><div class="empty-icon">&#x26A0;&#xFE0F;</div><div class="empty-title">Could not read file</div><div class="empty-desc">The entry may not be a text file or the archive password is incorrect.</div></div>
-        }
-        else if (IsRightPanel)
-        {
+        </div>
+    }
+    else if (IsRightPanel)
+    {
+        <div class="viewer-content">
             <div class="viewer-empty"><div class="empty-icon">&#x1F4C4;</div><div class="empty-title">Select a file to view</div><div class="empty-desc">Pick a file from the dropdown above.</div></div>
-        }
-        else
-        {
-            <div class="viewer-empty"><div class="empty-icon">&#x1F4C4;</div><div class="empty-title">Select a file to preview</div><div class="empty-desc">Choose a .txt entry from the contents panel to view its contents here.</div></div>
-        }
-    </div>
+        </div>
+    }
+    else
+    {
+        <div class="viewer-content">
+            <div class="viewer-empty"><div class="empty-icon">&#x1F4C4;</div><div class="empty-title">Select a file to preview</div><div class="empty-desc">Choose a .txt entry from the contents panel.</div></div>
+        </div>
+    }
 </div>

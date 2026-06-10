@@ -45,6 +45,7 @@ public partial class Dashboard : IDisposable
     private bool _contentsCollapsed;
     private double _zoomLevel = 1.0;
     private bool _wrapText;
+    private bool _showTabMenu;
 
     // ── Toast state ──
     private readonly List<ToastMessage> _toasts = new();
@@ -437,11 +438,18 @@ public partial class Dashboard : IDisposable
 
     private void ToggleSplitView()
     {
+        _showTabMenu = false;
         _splitView = !_splitView;
         if (!_splitView) _activeTabIndexRight = -1;
         else if (_openTabs.Count > 1 && _activeTabIndexRight < 0)
             _activeTabIndexRight = _activeTabIndex == 0 ? 1 : 0;
         ApplyAutoZoom();
+        StateHasChanged();
+    }
+
+    private void ToggleTabMenu()
+    {
+        _showTabMenu = !_showTabMenu;
         StateHasChanged();
     }
 

@@ -748,6 +748,51 @@ body {
   opacity: 1;
 }
 
+.tab-overflow {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.tab-overflow-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 999;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  min-width: 180px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.tab-overflow-item {
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background var(--transition-fast);
+}
+
+.tab-overflow-item:hover {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.tab-overflow-item.active {
+  color: var(--accent);
+  background: var(--accent-glow);
+}
+
 .tab-select {
   background: var(--bg-surface);
   border: 1px solid var(--border-medium);
@@ -979,6 +1024,52 @@ mark.fmc-line.fmc-active mark.fmc-match {
   color: var(--text-muted);
   padding-right: 16px;
   text-align: right;
+}
+
+.pre-line-numbers {
+  counter-reset: line;
+}
+
+.pre-line-numbers span.ln {
+  display: block;
+  counter-increment: line;
+}
+
+.pre-line-numbers span.ln::before {
+  content: counter(line);
+  display: inline-block;
+  width: 3em;
+  text-align: right;
+  padding-right: 1em;
+  color: var(--text-muted);
+  font-size: 0.75em;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.viewer-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 16px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-subtle);
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  height: 20px;
+  font-variant-numeric: tabular-nums;
+}
+
+.vs-line {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vs-scroll {
+  flex-shrink: 0;
+  margin-left: 8px;
 }
 
 .viewer-empty {

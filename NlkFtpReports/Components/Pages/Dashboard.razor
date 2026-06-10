@@ -233,6 +233,24 @@
                 }
             </div>
             <div class="tab-actions">
+                @if (_openTabs.Count > 0)
+                {
+                    <div class="tab-overflow" @onclick="ToggleTabMenu" @onblur="() => _showTabMenu = false" tabindex="0">
+                        <button class="btn-icon tab-action-btn" title="All tabs">&#x22EE;</button>
+                        @if (_showTabMenu)
+                        {
+                            <div class="tab-overflow-menu">
+                                @foreach (var (tab, idx) in _openTabs.Select((t, i) => (t, i)))
+                                {
+                                    var isActive = idx == _activeTabIndex || (_splitView && idx == _activeTabIndexRight);
+                                    <div class="tab-overflow-item @(isActive ? "active" : "")" @onclick="() => { _showTabMenu = false; SwitchTab(idx); }">
+                                        <span>@tab.FileName</span>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
                 <button class="btn-icon tab-action-btn" @onclick="ToggleSplitView" title="@(_splitView ? "Close split" : "Split view")">
                     @(_splitView ? "\u2550" : "\u2551")
                 </button>

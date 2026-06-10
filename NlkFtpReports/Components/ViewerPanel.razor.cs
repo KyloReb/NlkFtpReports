@@ -1,21 +1,15 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
 using NlkFtpReports.Services;
 
 namespace NlkFtpReports.Components;
 
-/// <summary>
-/// Reusable preview panel displayed inside the right-hand viewer.
-/// Renders a single file's content with find, zoom, and wrap controls.
-/// Used once in single-view mode and twice in split-view mode.
-/// </summary>
 public partial class ViewerPanel : IDisposable
 {
-    // ── Dependencies ──
     [Inject] private IJSRuntime JS { get; set; } = null!;
     [Inject] private SearchService Search { get; set; } = null!;
 
-    // ── Parameters ──
     [Parameter] public OpenTab? Tab { get; set; }
     [Parameter] public double ZoomLevel { get; set; }
     [Parameter] public bool WrapText { get; set; }
@@ -29,7 +23,6 @@ public partial class ViewerPanel : IDisposable
     [Parameter] public EventCallback OnZoomReset { get; set; }
     [Parameter] public EventCallback OnToggleWrap { get; set; }
 
-    // ── Find state ──
     private string _findText = "";
     private int _findCount;
     private int _findIndex;
@@ -38,6 +31,9 @@ public partial class ViewerPanel : IDisposable
     private bool _wholeWord;
     private bool _regexMode;
     private string? _previousTabKey;
+    private int _scrollLine;
+    private int _totalLines;
+    private int _scrollPercent;
 
     protected override void OnInitialized()
     {
@@ -47,9 +43,24 @@ public partial class ViewerPanel : IDisposable
     protected override void OnParametersSet()
     {
         var newKey = Tab?.Key;
-        if (_previousTabKey != null && _previousTabKey != newKey && !string.IsNullOrEmpty(_findText))
-            _ = DoFind();
+        if (_previousTabKey != null && _previousTabKey != newKey)
+        {
+            _scrollLine = 0;
+            _totalLines = Tab?.Content?.Count(c => c == '\n') + 1 ?? 0;
+            _scrollPercent = 0;
+            if (!string.IsNullOrEmpty(_findText))
+                _ = DoFind();
+        }
         _previousTabKey = newKey;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && Tab?.Content != null)
+        {
+            _totalLines = Tab.Content.Count(c => c == '\n') + 1;
+            StateHasChanged();
+        }
     }
 
     public void Dispose()
@@ -62,8 +73,7 @@ public partial class ViewerPanel : IDisposable
         _caseSensitive = Search.CaseSensitive;
         _wholeWord = Search.WholeWord;
         _regexMode = Search.RegexMode;
-        if (!string.IsNullOrEmpty(_findText))
-            _ = DoFind();
+        if (!string.IsNullOrEmpty(_findText)) _ = DoFind();
         StateHasChanged();
     }
 
@@ -71,32 +81,21 @@ public partial class ViewerPanel : IDisposable
     {
         if (string.IsNullOrEmpty(_findText) || Tab?.Content == null)
         {
-            _findCount = 0;
-            _findIndex = 0;
-            _isSearching = false;
+            _findCount = 0; _findIndex = 0; _isSearching = false;
             await HighlightFind();
             return;
         }
-
         _isSearching = true;
-        _findCount = 0;
-        _findIndex = 0;
+        _findCount = 0; _findIndex = 0;
         StateHasChanged();
-
         try
         {
-            var flags = Search.GetJsFlags();
-            var result = await JS.InvokeAsync<FindResult>("fmcFind.highlight", _findText, flags);
+            var result = await JS.InvokeAsync<FindResult>("fmcFind.highlight", _findText, Search.GetJsFlags());
             _findCount = result.left + result.right;
             _findIndex = _findCount > 0 ? 0 : 0;
-            if (_findCount > 0)
-                await JS.InvokeVoidAsync("fmcFind.goTo", 0);
+            if (_findCount > 0) await JS.InvokeVoidAsync("fmcFind.goTo", 0);
         }
-        catch
-        {
-            _findCount = 0;
-            _findIndex = 0;
-        }
+        catch { _findCount = 0; _findIndex = 0; }
         _isSearching = false;
         StateHasChanged();
     }
@@ -122,6 +121,21 @@ public partial class ViewerPanel : IDisposable
         try { await JS.InvokeVoidAsync("fmcFind.clear"); } catch { }
     }
 
+    private async Task OnFindKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && e.ShiftKey) await FindPrev();
+        else if (e.Key == "Enter") await FindNext();
+        else if (e.Key == "F3" && e.ShiftKey) await FindPrev();
+        else if (e.Key == "F3") await FindNext();
+        else if (e.Key == "Escape")
+        {
+            _findText = "";
+            _findCount = 0; _findIndex = 0;
+            await HighlightFind();
+            StateHasChanged();
+        }
+    }
+
     private async Task OnRightTabSelected(ChangeEventArgs e)
     {
         if (int.TryParse(e.Value?.ToString(), out var index) && index >= 0)
@@ -134,7 +148,21 @@ public partial class ViewerPanel : IDisposable
             await OnSelectLeftTab.InvokeAsync(index);
     }
 
-    // ── Data class for JS return ──
+    private async Task OnScroll(EventArgs e)
+    {
+        try
+        {
+            var pos = await JS.InvokeAsync<int[]>("fmcFind.getScrollPos");
+            if (pos.Length >= 2)
+            {
+                _scrollLine = pos[0];
+                _scrollPercent = pos[1];
+                StateHasChanged();
+            }
+        }
+        catch { }
+    }
+
     public class FindResult
     {
         public int left { get; set; }
@@ -142,9 +170,6 @@ public partial class ViewerPanel : IDisposable
     }
 }
 
-/// <summary>
-/// Represents a single open file tab inside the viewer.
-/// </summary>
 public class OpenTab
 {
     public string Key { get; set; } = "";

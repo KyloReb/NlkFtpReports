@@ -115,7 +115,23 @@
                     var orig = pre.getAttribute('data-original');
                     if (orig) pre.innerHTML = orig;
                 });
+            },
+            getScrollPos: function () {
+                var content = document.activeElement?.closest('.viewer-panel')?.querySelector('.viewer-content');
+                if (!content) return [0, 0];
+                var scrollTop = content.scrollTop;
+                var scrollH = content.scrollHeight - content.clientHeight;
+                if (scrollH <= 0) return [0, 0];
+                var pct = Math.round((scrollTop / scrollH) * 100);
+                var pre = content.querySelector('pre');
+                if (!pre) return [0, pct];
+                var lineH = pre.children.length > 0
+                    ? pre.children[0].offsetHeight || 16
+                    : 16;
+                var line = Math.round(scrollTop / lineH) + 1;
+                return [line, pct];
             }
+        };
         };
 
         document.addEventListener('keydown', function(e) {
