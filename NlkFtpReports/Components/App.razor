@@ -59,6 +59,7 @@
             _debounce: null,
             _pending: 0,
             highlight: function (text, flags) {
+                try {
                 var pres = document.querySelectorAll('.viewer-panel .viewer-content pre');
                 var empty = { left: 0, right: 0 };
                 if (!pres.length) return empty;
@@ -69,6 +70,7 @@
                 var id = ++self._pending;
                 return new Promise(function(resolve) {
                     self._debounce = setTimeout(function() {
+                        try {
                         if (id !== self._pending) { resolve(empty); return; }
                         var counts = [0, 0];
                         var caseSense = flags.indexOf('i') === -1;
@@ -76,10 +78,10 @@
                         var isRegex = flags.indexOf('r') !== -1;
 
                         pres.forEach(function(pre, panelIdx) {
+                            if (!pre || !pre.parentNode) return;
                             var lines = pre.querySelectorAll('span.ln');
                             if (!lines.length) return;
 
-                            // Save original HTML per span for restore
                             if (!pre.hasAttribute('data-original')) {
                                 var origHtml = '';
                                 lines.forEach(function(s) { origHtml += s.outerHTML + '\n'; });
@@ -96,6 +98,8 @@
                             var re = new RegExp('(' + pattern + ')', caseSense ? 'g' : 'gi');
 
                             lines.forEach(function(span) {
+                                try {
+                                if (!span || !span.parentNode) return;
                                 re.lastIndex = 0;
                                 var lineText = span.textContent || span.innerText;
                                 if (re.test(lineText)) {
@@ -105,17 +109,22 @@
                                     span.innerHTML = '<mark class="fmc-line">' + span.innerHTML + '</mark>';
                                     counts[panelIdx]++;
                                 }
+                                } catch(e) {}
                             });
                         });
                         resolve({ left: counts[0], right: counts[1] });
+                        } catch(e) { resolve(empty); }
                     }, 120);
                 });
+                } catch(e) { return { left: 0, right: 0 }; }
             },
             goTo: function (index) {
+                try {
                 var marks = document.querySelectorAll('.fmc-line');
                 if (!marks.length || index >= marks.length) return;
                 marks.forEach(function(m) { m.classList.remove('fmc-active'); });
                 var target = marks[index];
+                if (!target) return;
                 target.classList.add('fmc-active');
                 var panel = target.closest('.viewer-panel');
                 if (panel) {
@@ -124,19 +133,27 @@
                         content.scrollTop = target.offsetTop - content.clientHeight / 2;
                     }
                 }
+                } catch(e) {}
             },
             clear: function () {
+                try {
                 if (this._debounce) { clearTimeout(this._debounce); this._debounce = null; }
                 this._pending++;
-                document.querySelectorAll('.viewer-panel pre.pre-line-numbers').forEach(function(pre) {
+                var pres = document.querySelectorAll('.viewer-panel pre.pre-line-numbers');
+                pres.forEach(function(pre) {
+                    try {
+                    if (!pre || !pre.parentNode) return;
                     var orig = pre.getAttribute('data-original');
                     if (orig) {
                         pre.innerHTML = orig;
                         pre.removeAttribute('data-original');
                     }
+                    } catch(e) {}
                 });
+                } catch(e) {}
             },
             getScrollPos: function (panelIndex) {
+                try {
                 var pres = document.querySelectorAll('.viewer-panel .viewer-content');
                 var content = panelIndex !== undefined && pres[panelIndex] ? pres[panelIndex] : pres[0];
                 if (!content) return [0, 0];
@@ -144,14 +161,15 @@
                 var scrollH = content.scrollHeight - content.clientHeight;
                 if (scrollH <= 0) return [0, 0];
                 var pct = Math.round((scrollTop / scrollH) * 100);
-                // Calculate line from scroll position
                 var ln = content.querySelector('span.ln');
                 if (!ln) return [0, pct];
                 var lineH = ln.offsetHeight || 16;
                 var line = Math.round(scrollTop / lineH) + 1;
                 return [line, pct];
+                } catch(e) { return [0, 0]; }
             },
             goToLine: function (lineNum) {
+                try {
                 var pre = document.querySelector('.viewer-panel .viewer-content pre');
                 if (!pre) return;
                 var target = pre.querySelector('span.ln[data-line="' + lineNum + '"]');
@@ -160,6 +178,7 @@
                 if (content) {
                     content.scrollTop = target.offsetTop - content.clientHeight / 3;
                 }
+                } catch(e) {}
             }
         };
         document.addEventListener('keydown', function(e) {
