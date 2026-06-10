@@ -144,6 +144,19 @@
                     : 16;
                 var line = Math.round(scrollTop / lineH) + 1;
                 return [line, pct];
+            },
+            goToLine: function (lineNum) {
+                var pre = document.querySelector('.viewer-panel .viewer-content pre');
+                if (!pre) return;
+                var cs = getComputedStyle(pre);
+                var lh = parseFloat(cs.lineHeight) || 20;
+                var fs = parseFloat(cs.fontSize) || 12;
+                var lineH = lh || fs * 1.7;
+                var scrollTo = (lineNum - 1) * lineH;
+                var content = pre.closest('.viewer-content');
+                if (content) {
+                    content.scrollTop = Math.max(0, scrollTo - content.clientHeight / 3);
+                }
             }
         };
         document.addEventListener('keydown', function(e) {

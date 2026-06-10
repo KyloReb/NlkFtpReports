@@ -137,12 +137,25 @@ public partial class ViewerPanel : IDisposable
 
     private async Task GoToSearchResult(SearchResult r)
     {
-        if (r.TabIndex >= 0)
+        if (r.TabIndex < 0) return;
+
+        if (IsRightPanel)
+            await OnSelectRightTab.InvokeAsync(r.TabIndex);
+        else
+            await OnSelectLeftTab.InvokeAsync(r.TabIndex);
+
+        // Let Blazor re-render with the new tab
+        await Task.Delay(50);
+        StateHasChanged();
+
+        // Run the search on the newly switched tab
+        await DoFind();
+
+        // Scroll to the exact line
+        if (_findCount > 0)
         {
-            if (IsRightPanel)
-                await OnSelectRightTab.InvokeAsync(r.TabIndex);
-            else
-                await OnSelectLeftTab.InvokeAsync(r.TabIndex);
+            try { await JS.InvokeVoidAsync("fmcFind.goToLine", r.LineNumber); }
+            catch { }
         }
     }
 
