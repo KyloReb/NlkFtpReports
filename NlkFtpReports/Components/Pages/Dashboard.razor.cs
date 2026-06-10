@@ -92,6 +92,9 @@ public partial class Dashboard : IDisposable
         var result = new List<(TreeNode, int)>();
         foreach (var node in nodes.OrderBy(n => !n.IsFolder)
             .ThenByDescending(n => n.Name.Contains("NLK_REPORTS_EMV", StringComparison.OrdinalIgnoreCase))
+            .ThenByDescending(n => n.Name.Equals("PDF", StringComparison.OrdinalIgnoreCase))
+            .ThenByDescending(n => n.Name.Equals("TXT", StringComparison.OrdinalIgnoreCase))
+            .ThenByDescending(n => StartsWithAny(n.Name, "DATR", "DREJ", "DUNR"))
             .ThenBy(n => n.Name))
         {
             result.Add((node, depth));
@@ -100,6 +103,9 @@ public partial class Dashboard : IDisposable
         }
         return result;
     }
+
+    private static bool StartsWithAny(string value, params string[] prefixes) =>
+        prefixes.Any(p => value.StartsWith(p, StringComparison.OrdinalIgnoreCase));
 
     private List<TreeNode> BuildTree(List<RarEntryInfo> entries)
     {
@@ -206,9 +212,28 @@ public partial class Dashboard : IDisposable
         if (!string.IsNullOrWhiteSpace(_entryFilterText))
         {
             var re = Search.BuildPattern(_entryFilterText);
-            query = query.Where(e => re.IsMatch(Path.GetFileName(e.Key)));
+            var matches = _expandedEntries.Where(e => re.IsMatch(Path.GetFileName(e.Key))).ToList();
+            _filteredEntries = matches;
+
+            // Auto-expand parent folders of matching entries
+            _expandedEntryFolders.Clear();
+            foreach (var entry in matches)
+            {
+                var dir = Path.GetDirectoryName(entry.Key);
+                while (dir != null)
+                {
+                    _expandedEntryFolders.Add(dir.Replace('\\', '/'));
+                    var parent = Path.GetDirectoryName(dir);
+                    if (parent == dir) break;
+                    dir = parent;
+                }
+            }
         }
-        _filteredEntries = query.ToList();
+        else
+        {
+            _filteredEntries = _expandedEntries.ToList();
+            _expandedEntryFolders.Clear();
+        }
         StateHasChanged();
     }
 
