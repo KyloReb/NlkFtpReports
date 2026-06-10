@@ -151,11 +151,13 @@ public partial class ViewerPanel : IDisposable
             if (Tab?.FileName == r.FileName) break;
         }
 
-        // Run JS DOM highlight on the new tab
+        // Run JS DOM highlight on the new tab, preserving search-all results
         var savedSearchAll = _searchAllTabs;
+        var savedResults = _searchAllResults.ToList();
         _searchAllTabs = false;
         await DoFind();
         _searchAllTabs = savedSearchAll;
+        _searchAllResults = savedResults;
 
         // Scroll to the exact line
         if (_findCount > 0)
