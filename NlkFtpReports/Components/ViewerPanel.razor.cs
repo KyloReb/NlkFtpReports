@@ -144,12 +144,18 @@ public partial class ViewerPanel : IDisposable
         else
             await OnSelectLeftTab.InvokeAsync(r.TabIndex);
 
-        // Let Blazor re-render with the new tab
-        await Task.Delay(50);
-        StateHasChanged();
+        // Wait for the tab parameter to actually change (poll up to 2s)
+        for (int i = 0; i < 40; i++)
+        {
+            await Task.Delay(50);
+            if (Tab?.FileName == r.FileName) break;
+        }
 
-        // Run the search on the newly switched tab
+        // Run JS DOM highlight on the new tab
+        var savedSearchAll = _searchAllTabs;
+        _searchAllTabs = false;
         await DoFind();
+        _searchAllTabs = savedSearchAll;
 
         // Scroll to the exact line
         if (_findCount > 0)
