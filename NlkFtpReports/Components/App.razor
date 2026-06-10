@@ -1,0 +1,186 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <link rel="stylesheet" href="css/app.css" />
+    <link rel="stylesheet" href="NlkFtpReports.styles.css" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <HeadOutlet />
+</head>
+<body>
+
+    @* ── Splash Screen ── *@
+    @* Removed from DOM by JS after 1.5s *@
+    <div id="fmc-preloader">
+        <div class="preloader-content">
+            <img src="nlkLogo.png" alt="NLK Logo" class="preloader-logo" />
+        </div>
+        <div class="preloader-footer">
+            <span class="preloader-from">from</span>
+            <span class="preloader-brand">Nationlink/INFOSERVE</span>
+        </div>
+    </div>
+
+    <Routes @rendermode="RenderMode.InteractiveServer" />
+    <script src="_framework/blazor.web.js"></script>
+    <script>
+        console.log('[Splash] Script loaded at', new Date().toISOString());
+        setTimeout(function() {
+            var el = document.getElementById('fmc-preloader');
+            console.log('[Splash] hiding preloader, found=' + !!el);
+            if (el) {
+                el.classList.add('hidden');
+                setTimeout(function() {
+                    if (el.parentNode) {
+                        el.parentNode.removeChild(el);
+                        console.log('[Splash] DOM element removed');
+                    }
+                }, 600);
+            }
+        }, 1500);
+
+        window.fmcFind = {
+            _debounce: null,
+            _pending: 0,
+            highlight: function (text, flags) {
+                var pres = document.querySelectorAll('.viewer-panel .viewer-content pre');
+                var empty = { left: 0, right: 0 };
+                if (!pres.length) return empty;
+                this.clear();
+                if (!text) return empty;
+
+                var self = this;
+                var id = ++self._pending;
+                return new Promise(function(resolve) {
+                    self._debounce = setTimeout(function() {
+                        if (id !== self._pending) { resolve(empty); return; }
+                        var counts = [0, 0];
+                        var caseSense = flags.indexOf('i') === -1;
+                        var wholeWord = flags.indexOf('w') !== -1;
+                        var isRegex = flags.indexOf('r') !== -1;
+
+                        pres.forEach(function(pre, panelIdx) {
+                            var html = pre.getAttribute('data-original') || pre.innerHTML;
+                            pre.setAttribute('data-original', html);
+
+                            var pattern = text;
+                            if (!isRegex) {
+                                pattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                            }
+                            if (wholeWord) {
+                                pattern = '\\b' + pattern + '\\b';
+                            }
+                            var re = new RegExp('(' + pattern + ')', caseSense ? 'g' : 'gi');
+
+                            var lines = html.split('\n');
+                            for (var i = 0; i < lines.length; i++) {
+                                re.lastIndex = 0;
+                                if (re.test(lines[i])) {
+                                    re.lastIndex = 0;
+                                    var marked = lines[i].replace(re, '<mark class="fmc-match">$1</mark>');
+                                    lines[i] = '<mark class="fmc-line">' + marked + '</mark>';
+                                    counts[panelIdx]++;
+                                }
+                            }
+                            pre.innerHTML = lines.join('\n');
+                        });
+                        resolve({ left: counts[0], right: counts[1] });
+                    }, 120);
+                });
+            },
+            goTo: function (index) {
+                var marks = document.querySelectorAll('.fmc-line');
+                if (!marks.length || index >= marks.length) return;
+                marks.forEach(function(m) { m.classList.remove('fmc-active'); });
+                var target = marks[index];
+                target.classList.add('fmc-active');
+                var panel = target.closest('.viewer-panel');
+                if (panel) {
+                    var content = panel.querySelector('.viewer-content');
+                    if (content) {
+                        var rect = target.getBoundingClientRect();
+                        var cRect = content.getBoundingClientRect();
+                        if (rect.top < cRect.top || rect.bottom > cRect.bottom) {
+                            content.scrollTop = target.offsetTop - content.clientHeight / 2;
+                        }
+                    }
+                }
+            },
+            clear: function () {
+                if (this._debounce) { clearTimeout(this._debounce); this._debounce = null; }
+                this._pending++;
+                document.querySelectorAll('.viewer-panel .viewer-content pre').forEach(function(pre) {
+                    var orig = pre.getAttribute('data-original');
+                    if (orig) pre.innerHTML = orig;
+                });
+            }
+        };
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                var input = document.getElementById('find-input');
+                if (input && document.activeElement === input) {
+                    input.value = '';
+                    input.blur();
+                    window.fmcFind.clear();
+                    var event = new Event('input', { bubbles: true });
+                    input.dispatchEvent(event);
+                }
+            }
+        });
+
+        (function() {
+            document.addEventListener('mousedown', function(e) {
+                var handle = e.target.closest('.resize-handle');
+                if (!handle) return;
+                e.preventDefault();
+                var target = handle.previousElementSibling;
+                if (!target) return;
+                var startX = e.clientX;
+                var startW = target.offsetWidth;
+                function onMove(ev) {
+                    var dx = ev.clientX - startX;
+                    var w = Math.max(120, Math.min(600, startW + dx));
+                    target.style.width = w + 'px';
+                    target.style.minWidth = w + 'px';
+                    target.style.flexShrink = '0';
+                }
+                function onUp() {
+                    document.removeEventListener('mousemove', onMove);
+                    document.removeEventListener('mouseup', onUp);
+                    document.body.style.cursor = '';
+                    document.body.style.userSelect = '';
+                }
+                document.addEventListener('mousemove', onMove);
+                document.addEventListener('mouseup', onUp);
+                document.body.style.cursor = 'col-resize';
+                document.body.style.userSelect = 'none';
+            });
+        })();
+
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+                var input = document.getElementById('find-input');
+                if (input) {
+                    e.preventDefault();
+                    input.focus();
+                    input.select();
+                }
+            }
+        });
+
+        window.NlkTheme = {
+            get: function () { return localStorage.getItem('nlk-theme') || 'dark'; },
+            set: function (t) { localStorage.setItem('nlk-theme', t); document.documentElement.setAttribute('data-theme', t); },
+            apply: function (t) { document.documentElement.setAttribute('data-theme', t); }
+        };
+
+        (function() {
+            var saved = localStorage.getItem('nlk-theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', saved);
+        })();
+    </script>
+</body>
+</html>

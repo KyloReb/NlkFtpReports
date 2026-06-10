@@ -1,0 +1,53 @@
+﻿@inherits LayoutComponentBase
+@inject IJSRuntime JS
+@implements IDisposable
+
+<div class="app-shell">
+    <header class="app-header">
+        <div class="header-brand">
+            <img src="favicon.png" alt="NLK" class="header-logo" />
+            <span class="brand-title">NLK FTP Reports</span>
+            <span class="header-badge">RAR Reader</span>
+        </div>
+        <button class="theme-toggle" @onclick="ToggleTheme" title="Toggle theme">
+            @(_isDark ? "☀️" : "🌙")
+        </button>
+        <span class="header-subtitle">Nationlink / INFOSERVE</span>
+    </header>
+    <main class="app-main">
+        @Body
+    </main>
+</div>
+
+@code {
+    private bool _isDark = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var stored = await JS.InvokeAsync<string>("NlkTheme.get");
+                _isDark = stored != "light";
+            }
+            catch { _isDark = true; }
+            ApplyTheme();
+            StateHasChanged();
+        }
+    }
+
+    private async Task ToggleTheme()
+    {
+        _isDark = !_isDark;
+        ApplyTheme();
+        try { await JS.InvokeVoidAsync("NlkTheme.set", _isDark ? "dark" : "light"); } catch { }
+    }
+
+    private void ApplyTheme()
+    {
+        try { JS.InvokeVoidAsync("NlkTheme.apply", _isDark ? "dark" : "light"); } catch { }
+    }
+
+    public void Dispose() { }
+}

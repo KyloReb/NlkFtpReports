@@ -1,0 +1,280 @@
+@page "/"
+@using Microsoft.Extensions.Options
+@using NlkFtpReports.Services
+@implements IDisposable
+
+<div class="split-pane">
+
+    @* ── LEFT: Package list ── *@
+    <div class="pane-sidebar @(_sidebarCollapsed ? "collapsed" : "")">
+        <button class="pane-toggle-btn" @onclick="ToggleSidebar" title="@(_sidebarCollapsed ? "Show packages" : "Hide packages")">
+            @(_sidebarCollapsed ? "▶" : "◀")
+        </button>
+        <div class="pane-body">
+            <div class="sidebar-toolbar">
+                <div class="search-box">
+                    <span class="search-icon">&#x1F50D;</span>
+                    <input type="text" placeholder="Filter packages..."
+                           @bind="_filterText" @bind:after="FilterPackages" @bind:event="oninput" />
+                </div>
+                <button class="find-mode @(Search.CaseSensitive ? "active" : "")" @onclick="Search.ToggleCase" title="Case sensitive">Aa</button>
+                <button class="find-mode @(Search.WholeWord ? "active" : "")" @onclick="Search.ToggleWord" title="Whole word">^w</button>
+                <button class="find-mode @(Search.RegexMode ? "active" : "")" @onclick="Search.ToggleRegex" title="Regex">.*</button>
+                <button class="btn-icon" @onclick="RefreshPackages"
+                        title="Refresh archives" disabled="@_isScanning">
+                    @if (_isScanning)
+                    {
+                        <span class="spinner-mini"></span>
+                    }
+                    else
+                    {
+                        <span>&#x21BB;</span>
+                    }
+                </button>
+            </div>
+
+            @if (_errorMessage != null)
+            {
+                <div class="error-banner @_errorType">
+                    <span class="error-icon">@(_errorType == "error" ? "\u26A0" : _errorType == "warning" ? "\u26A0" : "\u2139")</span>
+                    <span class="error-text">@_errorMessage</span>
+                    <button class="error-dismiss" @onclick="() => _errorMessage = null">&#x2715;</button>
+                </div>
+            }
+
+            <div class="package-list">
+                @if (_isScanning)
+                {
+                    <div class="section-label">Scanning directories...</div>
+                    @for (int i = 0; i < 4; i++)
+                    {
+                        <div class="package-item" style="pointer-events:none;">
+                            <div class="skeleton skeleton-line wide"></div>
+                            <div class="skeleton skeleton-line medium" style="margin-left:26px;width:50%;"></div>
+                        </div>
+                    }
+                }
+                else if (_packages.Count == 0 && _errorMessage == null)
+                {
+                    <div class="empty-directory">
+                        <div class="empty-icon">&#x1F4C1;</div>
+                        <div class="empty-title">No archives found</div>
+                        <div class="empty-desc">Place <strong>.rar</strong> files in the watch directory or its subfolders.</div>
+                        <div class="empty-hint">@Settings.Value.WatchDirectory</div>
+                    </div>
+                }
+                else if (!_filteredPackages.Any() && _packages.Any())
+                {
+                    <div class="empty-directory">
+                        <div class="empty-icon">&#x1F50D;</div>
+                        <div class="empty-title">No matches</div>
+                        <div class="empty-desc">No packages match "<strong>@_filterText</strong>"</div>
+                    </div>
+                }
+                else
+                {
+                    var grouped = _filteredPackages.GroupBy(p => p.RelativeDirectory).OrderBy(g => g.Key);
+                    <div class="section-label">@_filteredPackages.Count archive@(_filteredPackages.Count != 1 ? "s" : "")</div>
+                    @foreach (var folderGroup in grouped)
+                    {
+                        var folderName = string.IsNullOrEmpty(folderGroup.Key) ? "Root" : folderGroup.Key;
+                        var isFolderExpanded = _expandedFolders.Contains(folderGroup.Key);
+                        <div class="folder-section">
+                            <div class="folder-header @(isFolderExpanded ? "expanded" : "")"
+                                 @onclick="() => ToggleFolder(folderGroup.Key)">
+                                <span class="folder-arrow">&#x25B6;</span>
+                                <span class="folder-icon">&#x1F4C1;</span>
+                                <span class="folder-name">@folderName</span>
+                                <span class="folder-count">@folderGroup.Count()</span>
+                            </div>
+                            @if (isFolderExpanded)
+                            {
+                                @foreach (var pkg in folderGroup.OrderByDescending(p => p.LastModified))
+                                {
+                                    var isSelected = _selectedPackage?.FullPath == pkg.FullPath;
+                                    <div class="package-item @(isSelected ? "selected" : "")"
+                                         @onclick="@(() => SelectPackage(pkg))">
+                                        <div class="package-header">
+                                            <span class="package-icon">&#x1F4E6;</span>
+                                            <span class="package-name">@pkg.FileName</span>
+                                        </div>
+                                        <div class="package-meta">
+                                            <span>@FormatSize(pkg.FileSizeBytes)</span>
+                                            <span>@pkg.LastModified.ToLocalTime().ToString("MMM dd, yyyy HH:mm")</span>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        </div>
+                    }
+                }
+            </div>
+            </div>
+
+            @if (_statusText != null)
+            {
+                <div class="status-bar">
+                    <span class="status-dot active"></span>
+                    <span class="status-text">@_statusText</span>
+                </div>
+            }
+    </div>
+
+    @* ── MIDDLE: Archive contents ── *@
+    <div class="pane-contents @(_selectedPackage != null ? "visible" : "") @(_contentsCollapsed ? "collapsed" : "")">
+        <button class="pane-toggle-btn" @onclick="ToggleContents" title="@(_contentsCollapsed ? "Show contents" : "Hide contents")">
+            @(_contentsCollapsed ? "▶" : "◀")
+        </button>
+        @if (_selectedPackage != null)
+        {
+            <div class="pane-body">
+            <div class="sidebar-toolbar">
+                <div class="search-box">
+                    <span class="search-icon">&#x1F50D;</span>
+                    <input type="text" placeholder="Filter files..."
+                           @bind="_entryFilterText" @bind:after="FilterEntries" @bind:event="oninput" />
+                </div>
+                <button class="find-mode @(Search.CaseSensitive ? "active" : "")" @onclick="Search.ToggleCase" title="Case sensitive">Aa</button>
+                <button class="find-mode @(Search.WholeWord ? "active" : "")" @onclick="Search.ToggleWord" title="Whole word">^w</button>
+                <button class="find-mode @(Search.RegexMode ? "active" : "")" @onclick="Search.ToggleRegex" title="Regex">.*</button>
+                <span style="font-size:0.68rem;color:var(--text-muted);white-space:nowrap;">
+                    @(_filteredEntries?.Count ?? 0)/@(_expandedEntries?.Count ?? 0)
+                </span>
+            </div>
+
+            <div class="package-list">
+                @if (_expandedEntries == null && !_isLoadingEntries)
+                {
+                    <div class="empty-directory" style="cursor:pointer;" @onclick="LoadArchiveEntries">
+                        <div class="empty-icon">&#x1F4E6;</div>
+                        <div class="empty-title">@_selectedPackage.FileName</div>
+                        <div class="empty-desc">Click to load the contents of this archive.</div>
+                    </div>
+                }
+                else if (_expandedEntries == null && _isLoadingEntries)
+                {
+                    <div class="loading-overlay" style="padding:60px 0;">
+                        <div class="spinner"></div>
+                        <span style="font-size:0.75rem;">Listing contents...</span>
+                    </div>
+                }
+                else if (_expandedEntries.Count == 0)
+                {
+                    <div class="empty-directory">
+                        <div class="empty-icon">&#x1F4AD;</div>
+                        <div class="empty-title">No readable files</div>
+                        <div class="empty-desc">The archive may be empty or password protected.</div>
+                    </div>
+                }
+                else if ((_filteredEntries?.Count ?? 0) == 0)
+                {
+                    <div class="empty-directory">
+                        <div class="empty-icon">&#x1F50D;</div>
+                        <div class="empty-title">No matches</div>
+                        <div class="empty-desc">No files match "<strong>@_entryFilterText</strong>" in this archive.</div>
+                    </div>
+                }
+                else
+                {
+                    var tree = BuildTree(_filteredEntries);
+                    var flat = FlattenTree(tree, 0);
+                    @foreach (var (node, depth) in flat)
+                    {
+                        if (node.IsFolder)
+                        {
+                            var isExpanded = _expandedEntryFolders.Contains(node.FullPath);
+                            <div class="entry-item folder @(isExpanded ? "expanded" : "")"
+                                 @onclick:stopPropagation
+                                 @onclick="() => ToggleEntryFolder(node.FullPath)"
+                                 title="@node.FullPath"
+                                 style="padding-left:@(12 + depth * 14)px;">
+                                <span class="entry-folder-arrow">&#x25B6;</span>
+                                &#x1F4C1; @node.Name
+                            </div>
+                        }
+                        else
+                        {
+                            var isSelected = ActiveTab?.Key == node.FullPath;
+                            <div class="entry-item @(isSelected ? "selected" : "")"
+                                 @onclick:stopPropagation
+                                 @onclick="() => SelectEntryByNode(node, false)"
+                                 @onclick:ctrl="() => SelectEntryByNode(node, true)"
+                                 title="@node.FullPath"
+                                 style="padding-left:@(12 + depth * 14)px;">
+                                <span class="entry-icon">
+                                    @if (node.IsTextFile) { <text>&#x1F4C4;</text> }
+                                    else { <text>&#x1F4CE;</text> }
+                                </span>
+                                @node.Name
+                                <span class="entry-size">@FormatSize(node.Size)</span>
+                            </div>
+                        }
+                    }
+                }
+            </div>
+            </div>
+        }
+    </div>
+
+    <div class="resize-handle" data-resize="pane-contents" title="Drag to resize"></div>
+
+    @* ── RIGHT: File preview ── *@
+    <div class="pane-viewer">
+        <div class="tab-bar">
+            <div class="tab-list">
+                @foreach (var (tab, idx) in _openTabs.Select((t, i) => (t, i)))
+                {
+                    var isActive = idx == _activeTabIndex || (_splitView && idx == _activeTabIndexRight);
+                    <div class="tab-item @(isActive ? "active" : "")" @onclick="() => SwitchTab(idx)">
+                        <span class="tab-icon">@(tab.IsTextFile ? "\uD83D\uDCC4" : "\uD83D\uDCCE")</span>
+                        <span class="tab-name">@tab.FileName</span>
+                        <button class="tab-close" @onclick:stopPropagation @onclick="() => CloseTab(idx)">&#x2715;</button>
+                    </div>
+                }
+            </div>
+            <div class="tab-actions">
+                <button class="btn-icon tab-action-btn" @onclick="ToggleSplitView" title="@(_splitView ? "Close split" : "Split view")">
+                    @(_splitView ? "\u2550" : "\u2551")
+                </button>
+                <button class="btn-icon tab-action-btn" @onclick="CloseAllTabs" title="Close all">&#x2715;</button>
+            </div>
+        </div>
+
+        <div class="viewer-body @(_splitView ? "split" : "")">
+            <ViewerPanel Tab="@ActiveTab"
+                         PackageName="@_selectedPackage?.FileName"
+                         ZoomLevel="@_zoomLevel"
+                         WrapText="@_wrapText"
+                         OnZoomIn="@(e => ZoomIn())"
+                         OnZoomOut="@(e => ZoomOut())"
+                         OnZoomReset="@(e => ZoomReset())"
+                         OnToggleWrap="@(e => ToggleWrap())" />
+
+            @if (_splitView)
+            {
+                <div class="viewer-divider"></div>
+                <ViewerPanel Tab="@ActiveTabRight"
+                             PackageName="@_selectedPackage?.FileName"
+                             ZoomLevel="@_zoomLevel"
+                             WrapText="@_wrapText"
+                             IsRightPanel="true"
+                             TotalMatchCount="@(_openTabs.Count > 0 ? 1 : 0)"
+                             RightMatchCount="@(_openTabs.Count > 1 ? 1 : 0)"
+                             OnZoomIn="@(e => ZoomIn())"
+                             OnZoomOut="@(e => ZoomOut())"
+                             OnZoomReset="@(e => ZoomReset())"
+                             OnToggleWrap="@(e => ToggleWrap())" />
+            }
+        </div>
+    </div>
+</div>
+
+<div class="toast-container">
+    @foreach (var toast in Enumerable.Reverse(_toasts))
+    {
+        <div class="toast @toast.Type @(toast.IsLeaving ? "leaving" : "")">
+            <span class="toast-icon">@(toast.Type switch { "success" => "\u2714", "error" => "\u26A0", "warning" => "\u26A0", _ => "\u2139" })</span>
+            <span class="toast-message">@toast.Message</span>
+        </div>
+    }
+</div>

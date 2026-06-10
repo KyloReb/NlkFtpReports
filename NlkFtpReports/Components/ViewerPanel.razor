@@ -1,0 +1,87 @@
+@* ── Reusable file preview panel ── *@
+<div class="viewer-panel">
+    <div class="viewer-header">
+        @if (Tab != null)
+        {
+            <div class="breadcrumb">
+                <span style="color:var(--text-muted)">@PackageName</span>
+                <span class="breadcrumb-sep">&#x203A;</span>
+                <span class="breadcrumb-current">@Tab.FileName</span>
+            </div>
+            @if (Tab.Content != null)
+            {
+                <div class="find-bar">
+                    <span class="find-label">&#x1F50D;</span>
+                    <input type="text" placeholder="Find..."
+                           @bind="_findText" @bind:after="DoFind" @bind:event="oninput" />
+                    <button class="find-mode @(_caseSensitive ? "active" : "")" @onclick="Search.ToggleCase" title="Case sensitive">Aa</button>
+                    <button class="find-mode @(_wholeWord ? "active" : "")" @onclick="Search.ToggleWord" title="Whole word">^w</button>
+                    <button class="find-mode @(_regexMode ? "active" : "")" @onclick="Search.ToggleRegex" title="Regex">.*</button>
+                    @if (_isSearching)
+                    {
+                        <span class="find-count searching">
+                            <span class="search-spinner"></span> Searching...
+                        </span>
+                    }
+                    else if (_findCount > 0)
+                    {
+                        <span class="find-count">
+                            @if (IsRightPanel && RightMatchCount > 0)
+                            {
+                                <text>@(_findIndex + 1)/@(_findCount) (L:@_findCount R:@RightMatchCount)</text>
+                            }
+                            else
+                            {
+                                <text>@(_findIndex + 1)/@(_findCount)</text>
+                            }
+                        </span>
+                        <button class="btn-icon find-nav" @onclick="FindPrev" title="Previous match">&#x25B2;</button>
+                        <button class="btn-icon find-nav" @onclick="FindNext" title="Next match">&#x25BC;</button>
+                    }
+                    else if (_findText != "")
+                    {
+                        <span class="find-count no-match">No matches</span>
+                    }
+                </div>
+                <div class="viewer-zoom">
+                    <button class="btn-icon zoom-btn" @onclick="OnZoomOut" title="Zoom out">&#x2212;</button>
+                    <span class="zoom-level">@((int)(ZoomLevel * 100))%</span>
+                    <button class="btn-icon zoom-btn" @onclick="OnZoomIn" title="Zoom in">&#x002B;</button>
+                    <button class="btn-icon zoom-btn" @onclick="OnZoomReset" title="Reset zoom">&#x21BA;</button>
+                    <button class="btn-icon zoom-btn @(WrapText ? "active" : "")" @onclick="OnToggleWrap" title="Toggle word wrap">&#x21A9;</button>
+                </div>
+            }
+        }
+        else if (IsRightPanel)
+        {
+            <span>Select a second file</span>
+        }
+        else
+        {
+            <span>Select a file to preview</span>
+        }
+    </div>
+
+    <div class="viewer-content">
+        @if (Tab?.IsLoading == true)
+        {
+            <div class="loading-overlay"><div class="spinner"></div><span class="loading-text">Loading content...</span></div>
+        }
+        else if (Tab?.Content != null)
+        {
+            <pre style="font-size:@((ZoomLevel * 100).ToString("F0"))%;white-space:@(WrapText ? "pre-wrap" : "pre");">@Tab.Content</pre>
+        }
+        else if (Tab != null)
+        {
+            <div class="viewer-empty"><div class="empty-icon">&#x26A0;&#xFE0F;</div><div class="empty-title">Could not read file</div><div class="empty-desc">The entry may not be a text file or the archive password is incorrect.</div></div>
+        }
+        else if (IsRightPanel)
+        {
+            <div class="viewer-empty"><div class="empty-icon">&#x1F4C4;</div><div class="empty-title">Select a file from tabs or contents</div><div class="empty-desc">Ctrl+click a file to open in the right panel.</div></div>
+        }
+        else
+        {
+            <div class="viewer-empty"><div class="empty-icon">&#x1F4C4;</div><div class="empty-title">Select a file to preview</div><div class="empty-desc">Choose a .txt entry from the contents panel to view its contents here.</div></div>
+        }
+    </div>
+</div>
