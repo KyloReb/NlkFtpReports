@@ -653,7 +653,7 @@ body {
   border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
   min-height: 32px;
-  overflow: hidden;
+  position: relative;
 }
 
 .tab-list {
@@ -683,6 +683,15 @@ body {
   transition: all var(--transition-fast);
   flex-shrink: 0;
   max-width: 160px;
+}
+
+.tab-item:active {
+  cursor: grabbing;
+}
+
+.tab-item.drag-over {
+  border-left-color: var(--accent);
+  background: var(--accent-glow);
 }
 
 .tab-item:hover {

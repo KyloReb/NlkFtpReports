@@ -417,6 +417,38 @@ public partial class Dashboard : IDisposable
         StateHasChanged();
     }
 
+    private int _dragSourceIndex;
+
+    private void OnDragStart(int index)
+    {
+        _dragSourceIndex = index;
+    }
+
+    private void OnDrop(int targetIndex)
+    {
+        if (_dragSourceIndex < 0 || _dragSourceIndex >= _openTabs.Count || targetIndex < 0 || targetIndex >= _openTabs.Count)
+            return;
+        if (_dragSourceIndex == targetIndex) return;
+
+        var item = _openTabs[_dragSourceIndex];
+        _openTabs.RemoveAt(_dragSourceIndex);
+
+        var insertAt = targetIndex > _dragSourceIndex ? targetIndex - 1 : targetIndex;
+        _openTabs.Insert(insertAt, item);
+
+        // Adjust active indices
+        if (_activeTabIndex == _dragSourceIndex) _activeTabIndex = insertAt;
+        else if (_activeTabIndex > _dragSourceIndex && _activeTabIndex <= targetIndex) _activeTabIndex--;
+        else if (_activeTabIndex < _dragSourceIndex && _activeTabIndex >= targetIndex) _activeTabIndex++;
+
+        if (_activeTabIndexRight == _dragSourceIndex) _activeTabIndexRight = insertAt;
+        else if (_activeTabIndexRight > _dragSourceIndex && _activeTabIndexRight <= targetIndex) _activeTabIndexRight--;
+        else if (_activeTabIndexRight < _dragSourceIndex && _activeTabIndexRight >= targetIndex) _activeTabIndexRight++;
+
+        _renderTick++;
+        StateHasChanged();
+    }
+
     private void SelectRightTab(int index)
     {
         if (index >= 0 && index < _openTabs.Count)

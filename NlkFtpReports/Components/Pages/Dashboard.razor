@@ -225,7 +225,12 @@
                 @foreach (var (tab, idx) in _openTabs.Select((t, i) => (t, i)))
                 {
                     var isActive = idx == _activeTabIndex || (_splitView && idx == _activeTabIndexRight);
-                    <div class="tab-item @(isActive ? "active" : "")" @onclick="() => SwitchTab(idx)">
+                    <div class="tab-item @(isActive ? "active" : "")"
+                         draggable="true"
+                         @onclick="() => SwitchTab(idx)"
+                         @ondragstart="() => OnDragStart(idx)"
+                         @ondragover:preventDefault
+                         @ondrop="() => OnDrop(idx)">
                         <span class="tab-icon">@(tab.IsTextFile ? "\uD83D\uDCC4" : "\uD83D\uDCCE")</span>
                         <span class="tab-name">@tab.FileName</span>
                         <button class="tab-close" @onclick:stopPropagation @onclick="() => CloseTab(idx)">&#x2715;</button>
