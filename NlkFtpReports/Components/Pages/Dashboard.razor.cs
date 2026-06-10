@@ -379,11 +379,30 @@ public partial class Dashboard : IDisposable
 
     private void CloseTab(int index)
     {
+        var wasLeft = _activeTabIndex == index;
+        var wasRight = _activeTabIndexRight == index;
+
         _openTabs.RemoveAt(index);
-        if (_openTabs.Count == 0) { _activeTabIndex = 0; _activeTabIndexRight = -1; _renderTick++; StateHasChanged(); return; }
-        if (_activeTabIndex >= _openTabs.Count) _activeTabIndex = _openTabs.Count - 1;
-        if (_activeTabIndexRight >= _openTabs.Count) _activeTabIndexRight = _openTabs.Count - 1;
-        if (_activeTabIndexRight == index) _activeTabIndexRight = -1;
+
+        if (_openTabs.Count == 0)
+        {
+            _activeTabIndex = 0;
+            _activeTabIndexRight = -1;
+            _renderTick++;
+            StateHasChanged();
+            return;
+        }
+
+        if (wasRight)
+            _activeTabIndexRight = -1;
+        else if (_activeTabIndexRight > index)
+            _activeTabIndexRight--;
+        else if (_activeTabIndexRight >= _openTabs.Count)
+            _activeTabIndexRight = _openTabs.Count - 1;
+
+        if (_activeTabIndex >= _openTabs.Count)
+            _activeTabIndex = _openTabs.Count - 1;
+
         _renderTick++;
         StateHasChanged();
     }
@@ -412,6 +431,7 @@ public partial class Dashboard : IDisposable
         if (!_splitView) _activeTabIndexRight = -1;
         else if (_openTabs.Count > 1 && _activeTabIndexRight < 0)
             _activeTabIndexRight = _activeTabIndex == 0 ? 1 : 0;
+        ApplyAutoZoom();
         StateHasChanged();
     }
 
@@ -447,7 +467,10 @@ public partial class Dashboard : IDisposable
     private void ApplyAutoZoom()
     {
         int panelsOpen = (_sidebarCollapsed ? 0 : 1) + (_contentsCollapsed ? 0 : 1);
-        _zoomLevel = panelsOpen switch { 0 => 1.0, 1 => 0.7, _ => 0.5 };
+        if (_splitView)
+            _zoomLevel = panelsOpen switch { 0 => 0.5, 1 => 0.5, _ => 0.4 };
+        else
+            _zoomLevel = panelsOpen switch { 0 => 1.0, 1 => 0.7, _ => 0.5 };
     }
 
     private void ZoomIn() { _zoomLevel = Math.Min(3.0, _zoomLevel + 0.1); StateHasChanged(); }
