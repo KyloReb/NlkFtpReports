@@ -227,7 +227,8 @@ public partial class ViewerPanel : IDisposable
     {
         try
         {
-            var pos = await JS.InvokeAsync<int[]>("fmcFind.getScrollPos");
+            var idx = IsRightPanel ? 1 : 0;
+            var pos = await JS.InvokeAsync<int[]>("fmcFind.getScrollPos", idx);
             if (pos.Length >= 2)
             {
                 _scrollLine = pos[0];

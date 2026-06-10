@@ -76,8 +76,15 @@
                         var isRegex = flags.indexOf('r') !== -1;
 
                         pres.forEach(function(pre, panelIdx) {
-                            var html = pre.getAttribute('data-original') || pre.innerHTML;
-                            pre.setAttribute('data-original', html);
+                            var lines = pre.querySelectorAll('span.ln');
+                            if (!lines.length) return;
+
+                            // Save original HTML per span for restore
+                            if (!pre.hasAttribute('data-original')) {
+                                var origHtml = '';
+                                lines.forEach(function(s) { origHtml += s.outerHTML + '\n'; });
+                                pre.setAttribute('data-original', origHtml);
+                            }
 
                             var pattern = text;
                             if (!isRegex) {
@@ -88,17 +95,17 @@
                             }
                             var re = new RegExp('(' + pattern + ')', caseSense ? 'g' : 'gi');
 
-                            var lines = html.split('\n');
-                            for (var i = 0; i < lines.length; i++) {
+                            lines.forEach(function(span) {
                                 re.lastIndex = 0;
-                                if (re.test(lines[i])) {
+                                var lineText = span.textContent || span.innerText;
+                                if (re.test(lineText)) {
                                     re.lastIndex = 0;
-                                    var marked = lines[i].replace(re, '<mark class="fmc-match">$1</mark>');
-                                    lines[i] = '<mark class="fmc-line">' + marked + '</mark>';
+                                    var marked = lineText.replace(re, '<mark class="fmc-match">$1</mark>');
+                                    span.innerHTML = marked;
+                                    span.innerHTML = '<mark class="fmc-line">' + span.innerHTML + '</mark>';
                                     counts[panelIdx]++;
                                 }
-                            }
-                            pre.innerHTML = lines.join('\n');
+                            });
                         });
                         resolve({ left: counts[0], right: counts[1] });
                     }, 120);
@@ -114,48 +121,44 @@
                 if (panel) {
                     var content = panel.querySelector('.viewer-content');
                     if (content) {
-                        var rect = target.getBoundingClientRect();
-                        var cRect = content.getBoundingClientRect();
-                        if (rect.top < cRect.top || rect.bottom > cRect.bottom) {
-                            content.scrollTop = target.offsetTop - content.clientHeight / 2;
-                        }
+                        content.scrollTop = target.offsetTop - content.clientHeight / 2;
                     }
                 }
             },
             clear: function () {
                 if (this._debounce) { clearTimeout(this._debounce); this._debounce = null; }
                 this._pending++;
-                document.querySelectorAll('.viewer-panel .viewer-content pre').forEach(function(pre) {
+                document.querySelectorAll('.viewer-panel pre.pre-line-numbers').forEach(function(pre) {
                     var orig = pre.getAttribute('data-original');
-                    if (orig) pre.innerHTML = orig;
+                    if (orig) {
+                        pre.innerHTML = orig;
+                        pre.removeAttribute('data-original');
+                    }
                 });
             },
-            getScrollPos: function () {
-                var content = document.activeElement?.closest('.viewer-panel')?.querySelector('.viewer-content');
+            getScrollPos: function (panelIndex) {
+                var pres = document.querySelectorAll('.viewer-panel .viewer-content');
+                var content = panelIndex !== undefined && pres[panelIndex] ? pres[panelIndex] : pres[0];
                 if (!content) return [0, 0];
                 var scrollTop = content.scrollTop;
                 var scrollH = content.scrollHeight - content.clientHeight;
                 if (scrollH <= 0) return [0, 0];
                 var pct = Math.round((scrollTop / scrollH) * 100);
-                var pre = content.querySelector('pre');
-                if (!pre) return [0, pct];
-                var lineH = pre.children.length > 0
-                    ? pre.children[0].offsetHeight || 16
-                    : 16;
+                // Calculate line from scroll position
+                var ln = content.querySelector('span.ln');
+                if (!ln) return [0, pct];
+                var lineH = ln.offsetHeight || 16;
                 var line = Math.round(scrollTop / lineH) + 1;
                 return [line, pct];
             },
             goToLine: function (lineNum) {
                 var pre = document.querySelector('.viewer-panel .viewer-content pre');
                 if (!pre) return;
-                var cs = getComputedStyle(pre);
-                var lh = parseFloat(cs.lineHeight) || 20;
-                var fs = parseFloat(cs.fontSize) || 12;
-                var lineH = lh || fs * 1.7;
-                var scrollTo = (lineNum - 1) * lineH;
+                var target = pre.querySelector('span.ln[data-line="' + lineNum + '"]');
+                if (!target) return;
                 var content = pre.closest('.viewer-content');
                 if (content) {
-                    content.scrollTop = Math.max(0, scrollTo - content.clientHeight / 3);
+                    content.scrollTop = target.offsetTop - content.clientHeight / 3;
                 }
             }
         };

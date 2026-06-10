@@ -120,7 +120,16 @@
     @if (Tab?.Content != null)
     {
         <div class="viewer-content" @onscroll="OnScroll" style="position:relative;">
-            <pre class="pre-line-numbers" style="font-size:@((ZoomLevel * 100).ToString("F0"))%;white-space:@(WrapText ? "pre-wrap" : "pre");">@Tab.Content</pre>
+            <pre class="pre-line-numbers" style="font-size:@((ZoomLevel * 100).ToString("F0"))%;white-space:@(WrapText ? "pre-wrap" : "pre");">
+                @{
+                    var lineIdx = 0;
+                    foreach (var line in Tab.Content.Split('\n'))
+                    {
+                        lineIdx++;
+                        <span class="ln" data-line="@lineIdx">@(line.TrimEnd('\r'))</span>
+                    }
+                }
+            </pre>
         </div>
         <div class="viewer-status">
             <span class="vs-line">Line @_scrollLine / @_totalLines</span>
