@@ -1,25 +1,22 @@
 @* ── Reusable file preview panel ── *@
 <div class="viewer-panel">
-    <div class="viewer-header">
+    <div class="viewer-header" style="height:auto;min-height:40px;padding:0;">
         @if (Tab != null)
         {
             <div style="display:flex;flex-direction:column;width:100%;min-width:0;">
-                <div style="font-size:0.65rem;color:var(--text-muted);padding:0 20px;height:20px;display:flex;align-items:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                <div style="font-size:0.65rem;color:var(--text-muted);padding:3px 16px 0;height:20px;display:flex;align-items:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                     @Tab.FileName
                 </div>
                 @if (Tab.Content != null)
                 {
-                    <div style="display:flex;align-items:center;gap:6px;padding:0 16px 0 20px;height:28px;">
+                    <div style="display:flex;align-items:center;gap:4px;padding:2px 12px 2px 16px;">
                         <div class="find-bar" style="flex:1;min-width:0;">
                             <span class="find-label">&#x1F50D;</span>
                             <input type="text" placeholder="Find..."
                                    @bind="_findText" @bind:after="DoFind" @bind:event="oninput" />
-                            <button class="find-mode @(_caseSensitive ? "active" : "")" @onclick="Search.ToggleCase" title="Case sensitive">Aa</button>
-                            <button class="find-mode @(_wholeWord ? "active" : "")" @onclick="Search.ToggleWord" title="Whole word">^w</button>
-                            <button class="find-mode @(_regexMode ? "active" : "")" @onclick="Search.ToggleRegex" title="Regex">.*</button>
                             @if (_isSearching)
                             {
-                                <span class="find-count searching">
+                                <span class="find-count searching" style="margin-left:auto;">
                                     <span class="search-spinner"></span> Searching...
                                 </span>
                             }
@@ -42,6 +39,11 @@
                             {
                                 <span class="find-count no-match">No matches</span>
                             }
+                            <span style="margin-left:auto;display:flex;align-items:center;gap:2px;">
+                                <button class="find-mode @(_caseSensitive ? "active" : "")" @onclick="Search.ToggleCase" title="Case sensitive">Aa</button>
+                                <button class="find-mode @(_wholeWord ? "active" : "")" @onclick="Search.ToggleWord" title="Whole word">^w</button>
+                                <button class="find-mode @(_regexMode ? "active" : "")" @onclick="Search.ToggleRegex" title="Regex">.*</button>
+                            </span>
                         </div>
                         <div class="viewer-zoom" style="flex-shrink:0;">
                             <button class="btn-icon zoom-btn" @onclick="OnZoomOut" title="Zoom out">&#x2212;</button>
@@ -56,9 +58,10 @@
         }
         else if (IsRightPanel)
         {
-            <div style="display:flex;align-items:center;gap:6px;flex:1;overflow:hidden;padding:0 16px;">
+            <div style="display:flex;align-items:center;gap:8px;flex:1;overflow:hidden;padding:0 16px;">
                 <span style="font-size:0.65rem;color:var(--text-muted);white-space:nowrap;">Tab:</span>
                 <select class="tab-select" @onchange="OnRightTabSelected">
+                    <option value="-1">— Select a file —</option>
                     @if (OpenTabs != null)
                     {
                         @foreach (var (t, i) in OpenTabs.Select((t, i) => (t, i)))
@@ -92,7 +95,7 @@
         }
         else if (IsRightPanel)
         {
-            <div class="viewer-empty"><div class="empty-icon">&#x1F4C4;</div><div class="empty-title">Select a file from tabs or contents</div><div class="empty-desc">Use the dropdown above or Ctrl+click a file in the contents tree.</div></div>
+            <div class="viewer-empty"><div class="empty-icon">&#x1F4C4;</div><div class="empty-title">Select a file to view</div><div class="empty-desc">Pick a file from the dropdown above.</div></div>
         }
         else
         {

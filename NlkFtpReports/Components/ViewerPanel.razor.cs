@@ -123,7 +123,7 @@ public partial class ViewerPanel : IDisposable
 
     private async Task OnRightTabSelected(ChangeEventArgs e)
     {
-        if (int.TryParse(e.Value?.ToString(), out var index))
+        if (int.TryParse(e.Value?.ToString(), out var index) && index >= 0)
             await OnSelectRightTab.InvokeAsync(index);
     }
 
