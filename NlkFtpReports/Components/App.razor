@@ -8,6 +8,12 @@
     <link rel="stylesheet" href="NlkFtpReports.styles.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
     <HeadOutlet />
+    <script>
+        (function() {
+            var saved = localStorage.getItem('nlk-theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', saved);
+        })();
+    </script>
 </head>
 <body>
 
@@ -201,11 +207,6 @@
             set: function (t) { localStorage.setItem('nlk-theme', t); document.documentElement.setAttribute('data-theme', t); },
             apply: function (t) { document.documentElement.setAttribute('data-theme', t); }
         };
-
-        (function() {
-            var saved = localStorage.getItem('nlk-theme') || 'dark';
-            document.documentElement.setAttribute('data-theme', saved);
-        })();
     </script>
 </body>
 </html>
