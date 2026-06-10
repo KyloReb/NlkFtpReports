@@ -28,13 +28,20 @@
                                    @bind="_findText" @bind:after="DoFind" @bind:event="oninput"
                                    @onkeydown="OnFindKeyDown" />
                             <span style="margin-left:auto;display:flex;align-items:center;gap:4px;flex-shrink:0;">
+                                @if (OpenTabs != null && OpenTabs.Count > 1)
+                                {
+                                    <button class="find-mode @(_searchAllTabs ? "active" : "")"
+                                            @onclick="ToggleSearchAll"
+                                            title="@(_searchAllTabs ? "Searching all tabs" : "Search this tab only")"
+                                            style="font-weight:400;">All&#x25A6;</button>
+                                }
                                 @if (_isSearching)
                                 {
                                     <span class="find-count searching">
                                         <span class="search-spinner"></span> Searching...
                                     </span>
                                 }
-                                else if (_findCount > 0)
+                                else if (_findCount > 0 && !_searchAllTabs)
                                 {
                                     <span class="find-count">
                                         @if (IsRightPanel && RightMatchCount > 0)
@@ -48,6 +55,10 @@
                                     </span>
                                     <button class="btn-icon find-nav" @onclick="FindPrev" title="Previous (Shift+Enter / F3)">&#x25B2;</button>
                                     <button class="btn-icon find-nav" @onclick="FindNext" title="Next (Enter / F3)">&#x25BC;</button>
+                                }
+                                else if (_findCount > 0 && _searchAllTabs)
+                                {
+                                    <span class="find-count">@_findCount match@(_findCount != 1 ? "es" : "")</span>
                                 }
                                 else if (_findText != "")
                                 {
@@ -68,6 +79,19 @@
                             <button class="btn-icon zoom-btn @(WrapText ? "active" : "")" @onclick="OnToggleWrap" title="Toggle word wrap">&#x21A9;</button>
                         </div>
                     </div>
+                    @if (_searchAllTabs && _searchAllResults.Count > 0)
+                    {
+                        <div class="search-all-results">
+                            @foreach (var r in _searchAllResults)
+                            {
+                                <div class="sar-item" @onclick="() => GoToSearchResult(r)">
+                                    <span class="sar-file">@r.FileName</span>
+                                    <span class="sar-line">L:@r.LineNumber</span>
+                                    <span class="sar-text">@r.LineText</span>
+                                </div>
+                            }
+                        </div>
+                    }
                 }
             </div>
         }

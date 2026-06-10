@@ -34,6 +34,8 @@ public partial class ViewerPanel : IDisposable
     private int _scrollLine;
     private int _totalLines;
     private int _scrollPercent;
+    private bool _searchAllTabs;
+    private List<SearchResult> _searchAllResults = new();
 
     protected override void OnInitialized()
     {
@@ -79,24 +81,75 @@ public partial class ViewerPanel : IDisposable
 
     private async Task DoFind()
     {
-        if (string.IsNullOrEmpty(_findText) || Tab?.Content == null)
+        _searchAllResults.Clear();
+
+        if (string.IsNullOrEmpty(_findText) || (_searchAllTabs ? (OpenTabs == null || OpenTabs.Count == 0) : (Tab?.Content == null)))
         {
             _findCount = 0; _findIndex = 0; _isSearching = false;
             await HighlightFind();
             return;
         }
+
         _isSearching = true;
         _findCount = 0; _findIndex = 0;
         StateHasChanged();
+
         try
         {
-            var result = await JS.InvokeAsync<FindResult>("fmcFind.highlight", _findText, Search.GetJsFlags());
-            _findCount = result.left + result.right;
-            _findIndex = _findCount > 0 ? 0 : 0;
-            if (_findCount > 0) await JS.InvokeVoidAsync("fmcFind.goTo", 0);
+            if (_searchAllTabs)
+            {
+                var re = Search.BuildPattern(_findText);
+                foreach (var (tab, idx) in OpenTabs!.Select((t, i) => (t, i)))
+                {
+                    if (tab.Content == null) continue;
+                    var lines = tab.Content.Split('\n');
+                    for (int li = 0; li < lines.Length; li++)
+                    {
+                        if (re.IsMatch(lines[li]))
+                        {
+                            var ctx = lines[li].Trim();
+                            if (ctx.Length > 80) ctx = ctx[..77] + "...";
+                            _searchAllResults.Add(new SearchResult
+                            {
+                                TabIndex = idx,
+                                FileName = tab.FileName,
+                                LineNumber = li + 1,
+                                LineText = ctx
+                            });
+                        }
+                    }
+                }
+                _findCount = _searchAllResults.Count;
+                _findIndex = 0;
+            }
+            else
+            {
+                var result = await JS.InvokeAsync<FindResult>("fmcFind.highlight", _findText, Search.GetJsFlags());
+                _findCount = result.left + result.right;
+                _findIndex = _findCount > 0 ? 0 : 0;
+                if (_findCount > 0) await JS.InvokeVoidAsync("fmcFind.goTo", 0);
+            }
         }
         catch { _findCount = 0; _findIndex = 0; }
         _isSearching = false;
+        StateHasChanged();
+    }
+
+    private async Task GoToSearchResult(SearchResult r)
+    {
+        if (r.TabIndex >= 0)
+        {
+            if (IsRightPanel)
+                await OnSelectRightTab.InvokeAsync(r.TabIndex);
+            else
+                await OnSelectLeftTab.InvokeAsync(r.TabIndex);
+        }
+    }
+
+    private void ToggleSearchAll()
+    {
+        _searchAllTabs = !_searchAllTabs;
+        if (!string.IsNullOrEmpty(_findText)) _ = DoFind();
         StateHasChanged();
     }
 
@@ -167,6 +220,14 @@ public partial class ViewerPanel : IDisposable
     {
         public int left { get; set; }
         public int right { get; set; }
+    }
+
+    public class SearchResult
+    {
+        public int TabIndex { get; set; }
+        public string FileName { get; set; } = "";
+        public int LineNumber { get; set; }
+        public string LineText { get; set; } = "";
     }
 }
 
