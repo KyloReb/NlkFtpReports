@@ -425,6 +425,16 @@ public partial class Dashboard : IDisposable
         }
     }
 
+    private void SelectLeftTab(int index)
+    {
+        if (index >= 0 && index < _openTabs.Count)
+        {
+            _activeTabIndex = index;
+            _renderTick++;
+            StateHasChanged();
+        }
+    }
+
     private void ToggleSplitView()
     {
         _splitView = !_splitView;

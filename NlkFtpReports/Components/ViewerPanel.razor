@@ -4,8 +4,20 @@
         @if (Tab != null)
         {
             <div style="display:flex;flex-direction:column;width:100%;min-width:0;">
-                <div style="font-size:0.65rem;color:var(--text-muted);padding:3px 16px 0;height:20px;display:flex;align-items:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                    @Tab.FileName
+                <div style="font-size:0.65rem;color:var(--text-muted);padding:3px 16px 0;height:20px;display:flex;align-items:center;gap:6px;">
+                    @if (OpenTabs != null && OpenTabs.Count > 1)
+                    {
+                        <select class="tab-select" @onchange="OnLeftTabSelected" style="font-size:0.6rem;padding:0 4px;max-width:200px;">
+                            @foreach (var (t, i) in OpenTabs.Select((t, i) => (t, i)))
+                            {
+                                <option value="@i" selected="@(Tab?.Key == t.Key)">@t.FileName</option>
+                            }
+                        </select>
+                    }
+                    else
+                    {
+                        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@Tab.FileName</span>
+                    }
                 </div>
                 @if (Tab.Content != null)
                 {

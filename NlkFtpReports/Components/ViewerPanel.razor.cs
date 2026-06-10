@@ -23,6 +23,7 @@ public partial class ViewerPanel : IDisposable
     [Parameter] public int RightMatchCount { get; set; }
     [Parameter] public List<OpenTab>? OpenTabs { get; set; }
     [Parameter] public EventCallback<int> OnSelectRightTab { get; set; }
+    [Parameter] public EventCallback<int> OnSelectLeftTab { get; set; }
     [Parameter] public EventCallback OnZoomIn { get; set; }
     [Parameter] public EventCallback OnZoomOut { get; set; }
     [Parameter] public EventCallback OnZoomReset { get; set; }
@@ -125,6 +126,12 @@ public partial class ViewerPanel : IDisposable
     {
         if (int.TryParse(e.Value?.ToString(), out var index) && index >= 0)
             await OnSelectRightTab.InvokeAsync(index);
+    }
+
+    private async Task OnLeftTabSelected(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var index) && index >= 0)
+            await OnSelectLeftTab.InvokeAsync(index);
     }
 
     // ── Data class for JS return ──

@@ -244,6 +244,8 @@
             <ViewerPanel Tab="@ActiveTab"
                          ZoomLevel="@_zoomLevel"
                          WrapText="@_wrapText"
+                         OpenTabs="@_openTabs"
+                         OnSelectLeftTab="@(i => SelectLeftTab(i))"
                          OnZoomIn="@(e => ZoomIn())"
                          OnZoomOut="@(e => ZoomOut())"
                          OnZoomReset="@(e => ZoomReset())"
