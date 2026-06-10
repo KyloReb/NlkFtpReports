@@ -139,32 +139,33 @@ public partial class ViewerPanel : IDisposable
     {
         if (r.TabIndex < 0) return;
 
+        // Switch to the tab that has the result
         if (IsRightPanel)
             await OnSelectRightTab.InvokeAsync(r.TabIndex);
         else
             await OnSelectLeftTab.InvokeAsync(r.TabIndex);
 
-        // Wait for the tab parameter to actually change (poll up to 2s)
-        for (int i = 0; i < 40; i++)
-        {
-            await Task.Delay(50);
-            if (Tab?.FileName == r.FileName) break;
-        }
+        // Wait for Blazor to finish re-rendering the <pre> element
+        await Task.Delay(150);
 
-        // Run JS DOM highlight on the new tab, preserving search-all results
-        var savedSearchAll = _searchAllTabs;
-        var savedResults = _searchAllResults.ToList();
-        _searchAllTabs = false;
-        await DoFind();
-        _searchAllTabs = savedSearchAll;
-        _searchAllResults = savedResults;
-
-        // Scroll to the exact line
-        if (_findCount > 0)
+        // Directly call JS — bypass DoFind to avoid its clearing logic
+        try
         {
-            try { await JS.InvokeVoidAsync("fmcFind.goToLine", r.LineNumber); }
-            catch { }
+            // Highlight matches on the current <pre>
+            var result = await JS.InvokeAsync<FindResult>("fmcFind.highlight", _findText, Search.GetJsFlags());
+            var total = result.left + result.right;
+
+            if (total > 0)
+            {
+                // Scroll to the exact line number
+                await JS.InvokeVoidAsync("fmcFind.goToLine", r.LineNumber);
+            }
         }
+        catch { }
+
+        // Preserve the search-all results panel
+        _searchAllTabs = true;
+        StateHasChanged();
     }
 
     private void ToggleSearchAll()
