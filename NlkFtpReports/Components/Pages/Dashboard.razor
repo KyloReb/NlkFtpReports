@@ -242,7 +242,6 @@
 
         <div class="viewer-body @(_splitView ? "split" : "")">
             <ViewerPanel Tab="@ActiveTab"
-                         PackageName="@_selectedPackage?.FileName"
                          ZoomLevel="@_zoomLevel"
                          WrapText="@_wrapText"
                          OnZoomIn="@(e => ZoomIn())"
@@ -254,13 +253,11 @@
             {
                 <div class="viewer-divider"></div>
                 <ViewerPanel Tab="@ActiveTabRight"
-                             PackageName="@_selectedPackage?.FileName"
                              ZoomLevel="@_zoomLevel"
                              WrapText="@_wrapText"
                              IsRightPanel="true"
                              OpenTabs="@_openTabs"
                              OnSelectRightTab="@(i => SelectRightTab(i))"
-                             TotalMatchCount="@(_openTabs.Count > 0 ? 1 : 0)"
                              RightMatchCount="@(_openTabs.Count > 1 ? 1 : 0)"
                              OnZoomIn="@(e => ZoomIn())"
                              OnZoomOut="@(e => ZoomOut())"

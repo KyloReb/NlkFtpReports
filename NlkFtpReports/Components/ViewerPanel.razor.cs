@@ -17,11 +17,9 @@ public partial class ViewerPanel : IDisposable
 
     // ── Parameters ──
     [Parameter] public OpenTab? Tab { get; set; }
-    [Parameter] public string? PackageName { get; set; }
     [Parameter] public double ZoomLevel { get; set; }
     [Parameter] public bool WrapText { get; set; }
     [Parameter] public bool IsRightPanel { get; set; }
-    [Parameter] public int TotalMatchCount { get; set; }
     [Parameter] public int RightMatchCount { get; set; }
     [Parameter] public List<OpenTab>? OpenTabs { get; set; }
     [Parameter] public EventCallback<int> OnSelectRightTab { get; set; }
@@ -38,10 +36,19 @@ public partial class ViewerPanel : IDisposable
     private bool _caseSensitive;
     private bool _wholeWord;
     private bool _regexMode;
+    private string? _previousTabKey;
 
     protected override void OnInitialized()
     {
         Search.OnChanged += OnSearchModeChanged;
+    }
+
+    protected override void OnParametersSet()
+    {
+        var newKey = Tab?.Key;
+        if (_previousTabKey != null && _previousTabKey != newKey && !string.IsNullOrEmpty(_findText))
+            _ = DoFind();
+        _previousTabKey = newKey;
     }
 
     public void Dispose()
